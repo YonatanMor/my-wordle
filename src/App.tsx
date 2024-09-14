@@ -63,30 +63,79 @@ export default function Index() {
   };
 
   const colorRow = () => {
-    const targetword1 = targetWord.map((char) => {
-      return { char, isMarked: false };
+    const markedChars = targetWord.map((char) => {
+      return { char, isMarked: false, isYellow: false };
     });
-    const greenLetterIndex: object[] = [];
+    // const greenLetterIndex: object[] = []
     const inputArr = input.split("");
     inputArr.forEach((input, i) => {
-      if (targetWord.includes(input)) {
-        if (input === targetWord[i]) {
-          if (cellRefs.current[currentRow][i]) {
-            targetword1[i].isMarked = true;
-            cellRefs.current[currentRow][i].style.backgroundColor = "#538D4E";
-          }
-        } else if (
-          targetword1
-            .filter((obj) => obj.char === input)
-            .filter((obj) => !obj.isMarked)[0]
-        ) {
-          if (cellRefs.current[currentRow][i]) {
-            cellRefs.current[currentRow][i].style.backgroundColor = "#B59F3B";
-          }
+      if (input === targetWord[i]) {
+        if (cellRefs.current[currentRow][i]) {
+          markedChars[i].isMarked = true;
+          cellRefs.current[currentRow][i].style.backgroundColor = "#538D4E";
         }
       }
     });
+    // console.log(markedChars)
+    inputArr.forEach((input, i) => {
+      // console.log(
+      //   targetWord.includes(input) &&
+      //     markedChars
+      //       .filter((obj) => obj.char === input)
+      //       .filter((obj) => !obj.isMarked)[0],
+      // )
+      console.log(
+        "include: ",
+        targetWord.includes(input),
+        "isMarked: ",
+        markedChars[i].isMarked,
+        "filter: ",
+        markedChars
+          .filter((obj) => obj.char === input)
+          .filter((obj) => !obj.isMarked)[0],
+
+        "boolean: ",
+        cellRefs.current[currentRow][i].style.backgroundColor !== "#538D4E"
+      );
+      if (
+        targetWord.includes(input) &&
+        !markedChars[i].isMarked &&
+        markedChars
+          .filter((obj) => obj.char === input)
+          .filter((obj) => !obj.isMarked)[0] &&
+        cellRefs.current[currentRow][i] &&
+        cellRefs.current[currentRow][i].style.backgroundColor !== "#538D4E"
+      ) {
+        markedChars[i].isYellow = true;
+        cellRefs.current[currentRow][i].style.backgroundColor = "#B59F3B";
+      }
+    });
   };
+  // const colorRow = () => {
+  //   const targetword1 = targetWord.map((char) => {
+  //     return { char, isMarked: false }
+  //   })
+  //   const greenLetterIndex: object[] = []
+  //   const inputArr = input.split("")
+  //   inputArr.forEach((input, i) => {
+  //     if (targetWord.includes(input)) {
+  //       if (input === targetWord[i]) {
+  //         if (cellRefs.current[currentRow][i]) {
+  //           targetword1[i].isMarked = true
+  //           cellRefs.current[currentRow][i].style.backgroundColor = "#538D4E"
+  //         }
+  //       } else if (
+  //         targetword1
+  //           .filter((obj) => obj.char === input)
+  //           .filter((obj) => !obj.isMarked)[0]
+  //       ) {
+  //         if (cellRefs.current[currentRow][i]) {
+  //           cellRefs.current[currentRow][i].style.backgroundColor = "#B59F3B"
+  //         }
+  //       }
+  //     }
+  //   })
+  // }
 
   const setRef = (el: HTMLDivElement | null, i: number, j: number) => {
     if (!cellRefs.current[i]) {
@@ -109,7 +158,8 @@ export default function Index() {
   const generateTargetWord = async () => {
     const rndLetter = LETTERS[Math.round(Math.random() * 25)];
     const response = await fetch(
-      `https://api.datamuse.com/words?sp=${rndLetter}????`
+      `https://api.datamuse.com/words?sp=???ll`
+      // `https://api.datamuse.com/words?sp=${rndLetter}????`,
     );
     const words = await response.json();
     const word = words[Math.floor(words.length * Math.random())].word;
