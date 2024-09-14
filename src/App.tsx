@@ -1,11 +1,12 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 export default function Index() {
   const [grid, setGrid] = useState(Array(6).fill(Array(5).fill("")));
   const [currentRow, setCurrentRow] = useState(0);
-  const [mutateTraget, setMutateTraget] = useState<string>("");
   const [input, setInput] = useState("");
-  const [targetWord, setTragetWord] = useState("");
+  const [targetWord, setTragetWord] = useState<string[]>([]);
+  let cellRefs = useRef<(HTMLDivElement | null)[][]>([]);
+  // let mutatedTargetWord = useRef("")
   const LETTERS = [
     "a",
     "b",
@@ -44,42 +45,59 @@ export default function Index() {
     setCurrentRow(0);
     setInput("");
     generateTargetWord();
+    cellRefs.current = [];
   };
 
-  const updateBoard = (e) => {
+  const updateBoard = (e: React.ChangeEvent<HTMLInputElement>) => {
     setInput(e.target.value);
-    const wordArr = [...e.target.value.split("")];
-    const missingChars = 5 - wordArr.length;
+    const inputArr = [...e.target.value.split("")];
+    const missingChars = 5 - inputArr.length;
     if (missingChars !== 5) {
       for (let i = 0; i < missingChars; i++) {
-        wordArr.push("");
+        inputArr.push("");
       }
     }
     const updatedGrid = [...grid];
-    updatedGrid[currentRow] = wordArr;
+    updatedGrid[currentRow] = inputArr;
     setGrid(updatedGrid);
   };
 
-  const setCellBg = (char, i) => {
-    if (i === 0) {
-      // setMutateTraget(targetWord)
+  const colorRow = () => {
+    const targetword1 = targetWord.map((char) => {
+      return { char, isMarked: false };
+    });
+    const greenLetterIndex: object[] = [];
+    const inputArr = input.split("");
+    inputArr.forEach((input, i) => {
+      if (targetWord.includes(input)) {
+        if (input === targetWord[i]) {
+          if (cellRefs.current[currentRow][i]) {
+            targetword1[i].isMarked = true;
+            cellRefs.current[currentRow][i].style.backgroundColor = "#538D4E";
+          }
+        } else if (
+          targetword1
+            .filter((obj) => obj.char === input)
+            .filter((obj) => !obj.isMarked)[0]
+        ) {
+          if (cellRefs.current[currentRow][i]) {
+            cellRefs.current[currentRow][i].style.backgroundColor = "#B59F3B";
+          }
+        }
+      }
+    });
+  };
+
+  const setRef = (el: HTMLDivElement | null, i: number, j: number) => {
+    if (!cellRefs.current[i]) {
+      cellRefs.current[i] = [];
     }
-    if (char === targetWord[i]) {
-      // setMutateTraget((prev: string) => {
-      //   const arr = prev.split("")
-      //   arr[i] = ""
-      // })
-      return " bg-[#538D4E]";
-    } else if (targetWord.includes(char) && char !== "") {
-      console.log("yellow");
-      return "bg-[#B59F3B]";
-    }
-    console.log("dark");
-    return "bg-[#3A3A3C]";
+    cellRefs.current[i][j] = el;
   };
 
   const submitRow = () => {
     if (input.length === 5) {
+      colorRow();
       setInput("");
       setCurrentRow((prev) => prev + 1);
       if (currentRow === 5) {
@@ -99,22 +117,19 @@ export default function Index() {
   };
 
   return (
-    <div className="flex flex-col ">
+    <div className="flex flex-col bg-black">
       <div className="flex justify-center">
         <span className="bg-slate-300 text-[40px]">{targetWord}</span>
       </div>
       <div className="inline-grid w-fit grid-cols-5 grid-rows-6 gap-3 bg-black p-6">
         {grid.map((row: String[], rowIndex: number) =>
-          row.map((col: String, colIndex: number) => (
+          row.map((char: String, colIndex: number) => (
             <div
-              key={colIndex}
-              className={`flex h-32 w-32 items-center justify-center border text-[50px] text-white  ${
-                currentRow > rowIndex
-                  ? setCellBg(col, colIndex) + " border-none"
-                  : "bg-black"
-              }`}
+              key={rowIndex + "," + colIndex}
+              ref={(el) => setRef(el, rowIndex, colIndex)}
+              className="flex h-32 w-32 items-center justify-center border text-[50px] text-white"
             >
-              {col.toUpperCase()}
+              {char.toUpperCase()}
             </div>
           ))
         )}
