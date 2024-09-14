@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 export default function Index() {
   const [grid, setGrid] = useState(Array(6).fill(Array(5).fill("")));
   const [currentRow, setCurrentRow] = useState(0);
+  const [mutateTraget, setMutateTraget] = useState<string>("");
   const [input, setInput] = useState("");
   const [targetWord, setTragetWord] = useState("");
   const LETTERS = [
@@ -38,31 +39,36 @@ export default function Index() {
     resetGame();
   }, []);
 
+  const resetGame = async () => {
+    setGrid(Array(6).fill(Array(5).fill("")));
+    setCurrentRow(0);
+    setInput("");
+    generateTargetWord();
+  };
+
   const updateBoard = (e) => {
     setInput(e.target.value);
-    const word = [...e.target.value.split("")];
-    while (word.length < 5) {
-      word.push("");
+    const wordArr = [...e.target.value.split("")];
+    const missingChars = 5 - wordArr.length;
+    if (missingChars !== 5) {
+      for (let i = 0; i < missingChars; i++) {
+        wordArr.push("");
+      }
     }
     const updatedGrid = [...grid];
-    updatedGrid[currentRow] = word;
+    updatedGrid[currentRow] = wordArr;
     setGrid(updatedGrid);
   };
 
-  const submitRow = () => {
-    if (input.length === 5) {
-      setInput("");
-      setCurrentRow((prev) => prev + 1);
-      if (currentRow === 5) {
-        alert("game over");
-      }
-      // colorLetters()
+  const setCellBg = (char, i) => {
+    if (i === 0) {
+      // setMutateTraget(targetWord)
     }
-  };
-
-  const setBg = (char, i) => {
     if (char === targetWord[i]) {
-      console.log("green");
+      // setMutateTraget((prev: string) => {
+      //   const arr = prev.split("")
+      //   arr[i] = ""
+      // })
       return " bg-[#538D4E]";
     } else if (targetWord.includes(char) && char !== "") {
       console.log("yellow");
@@ -72,11 +78,14 @@ export default function Index() {
     return "bg-[#3A3A3C]";
   };
 
-  const resetGame = async () => {
-    setGrid(Array(6).fill(Array(5).fill("")));
-    setCurrentRow(0);
-    setInput("");
-    generateTargetWord();
+  const submitRow = () => {
+    if (input.length === 5) {
+      setInput("");
+      setCurrentRow((prev) => prev + 1);
+      if (currentRow === 5) {
+        alert("game over");
+      }
+    }
   };
 
   const generateTargetWord = async () => {
@@ -85,21 +94,24 @@ export default function Index() {
       `https://api.datamuse.com/words?sp=${rndLetter}????`
     );
     const words = await response.json();
-    setTragetWord(words[Math.floor(words.length * Math.random())].word);
+    const word = words[Math.floor(words.length * Math.random())].word;
+    setTragetWord(word.split(""));
   };
 
   return (
-    <div>
+    <div className="flex flex-col ">
       <div className="flex justify-center">
-        <span className="text-3xl">{targetWord}</span>
+        <span className="bg-slate-300 text-[40px]">{targetWord}</span>
       </div>
-      <div className="grid h-[600px]  grid-cols-5 grid-rows-6 gap-1 bg-black p-2">
+      <div className="inline-grid w-fit grid-cols-5 grid-rows-6 gap-3 bg-black p-6">
         {grid.map((row: String[], rowIndex: number) =>
           row.map((col: String, colIndex: number) => (
             <div
               key={colIndex}
-              className={`w-18 h-18 flex items-center justify-center border text-[50px] text-white  ${
-                currentRow > rowIndex ? setBg(col, colIndex) : "bg-black"
+              className={`flex h-32 w-32 items-center justify-center border text-[50px] text-white  ${
+                currentRow > rowIndex
+                  ? setCellBg(col, colIndex) + " border-none"
+                  : "bg-black"
               }`}
             >
               {col.toUpperCase()}
