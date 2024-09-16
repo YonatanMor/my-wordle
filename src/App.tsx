@@ -3,58 +3,25 @@ import { useEffect, useRef, useState } from "react";
 export default function Index() {
   const [grid, setGrid] = useState(Array(6).fill(Array(5).fill("")));
   const [currentRow, setCurrentRow] = useState(0);
-  const [input, setInput] = useState("");
+  const [userInput, setUserInput] = useState("");
   const [targetWord, setTragetWord] = useState<string[]>([]);
   let cellRefs = useRef<(HTMLDivElement | null)[][]>([]);
-  const CharCounter = useRef<number>(0);
-
-  const LETTERS = [
-    "a",
-    "b",
-    "c",
-    "d",
-    "e",
-    "f",
-    "g",
-    "h",
-    "i",
-    "j",
-    "k",
-    "l",
-    "m",
-    "n",
-    "o",
-    "p",
-    "q",
-    "r",
-    "s",
-    "t",
-    "u",
-    "v",
-    "w",
-    "x",
-    "y",
-    "z",
-  ];
 
   useEffect(() => {
     resetGame();
   }, []);
+  const allowedChars = /^[a-zA-Z]*$/;
 
   const resetGame = async () => {
     setGrid(Array(6).fill(Array(5).fill("")));
     setCurrentRow(0);
-    setInput("");
+    setUserInput("");
+    resetCellsBgColor();
     generateTargetWord();
-    cellRefs.current = [];
-    // targetWord.forEach((char) => {
-    //   // if(CharCounter.current.includes(char))
-    //   // check how many times each target letter appears: [2,1,1,1] =
-    // })
   };
 
   const updateBoard = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setInput(e.target.value);
+    setUserInput(e.target.value);
     const inputArr = [...e.target.value.split("")];
     const missingChars = 5 - inputArr.length;
     if (missingChars !== 5) {
@@ -67,41 +34,56 @@ export default function Index() {
     setGrid(updatedGrid);
   };
 
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      submitRow();
+    } else if (!allowedChars.test(e.key)) {
+      e.preventDefault();
+    }
+  };
+
   const colorRow = () => {
     const markedChars = targetWord.map((char) => {
-      return { char, isColored: false };
+      return { char, bgColor: "", counter: 1 };
     });
-
-    const inputArr = input.split("");
-    console.log({ inputArr });
-    console.log({ markedChars });
+    const inputArr = userInput.split("");
 
     inputArr.forEach((input, i) => {
       if (input === targetWord[i]) {
         if (cellRefs.current[currentRow][i]) {
-          markedChars[i].isColored = true;
-          cellRefs.current[currentRow][i]!.style.backgroundColor = "#538D4E";
+          markedChars[i].bgColor = "#538D4E";
+          markedChars[i].counter = 0;
         }
       }
     });
 
     inputArr.forEach((input, i) => {
-      const uncoloredMatchCharIndex = markedChars.findIndex(
-        (obj) => obj.char === input && obj.isColored === false
-      );
+      const isFreeForYellow = (inputChar: string) =>
+        markedChars.find((obj) => {
+          if (obj.char === inputChar && obj.counter) {
+            obj.counter = 0;
+            return 1;
+          }
+        });
       if (
         targetWord.includes(input) &&
-        cellRefs.current[currentRow][i] &&
-        cellRefs.current[currentRow][i].style.backgroundColor !==
-          "rgb(83, 141, 78)" &&
-        markedChars.find(
-          (obj) => obj.char === input && obj.isColored === false
-        ) &&
-        markedChars[uncoloredMatchCharIndex]
+        markedChars[i].bgColor !== "#538D4E" &&
+        isFreeForYellow(input)
       ) {
-        markedChars[uncoloredMatchCharIndex].isColored = true;
-        cellRefs.current[currentRow][i]!.style.backgroundColor = "#B59F3B";
+        markedChars[i].bgColor = "#B59F3B";
       }
+    });
+    return markedChars.map((obj) => obj.bgColor);
+  };
+
+  const resetCellsBgColor = () => {
+    cellRefs.current.forEach((row) => {
+      row.forEach((cell) => {
+        if (cell) {
+          cell.style.backgroundColor = "";
+          cell.classList.remove("animate-rotate");
+        }
+      });
     });
   };
 
@@ -113,30 +95,48 @@ export default function Index() {
   };
 
   const submitRow = () => {
-    if (input.length === 5) {
-      colorRow();
-      setInput("");
+    if (userInput.length === 5) {
+      const colors = colorRow();
+      setUserInput("");
+      animateCell(colors);
       setCurrentRow((prev) => prev + 1);
       if (currentRow === 5) {
-        alert("game over");
       }
     }
   };
 
+  const animateCell = (colors: string[]) => {
+    cellRefs.current[currentRow].forEach((item, index) => {
+      if (item) {
+        item.style.animationDelay = `${index * 0.5}s`;
+
+        setTimeout(() => {
+          item.style.transition = "background-color 0.5s ease";
+          item.style.backgroundColor = colors[index]
+            ? colors[index]
+            : "#3a3a3c";
+        }, index * 500);
+
+        item.classList.add("animate-rotate");
+      }
+    });
+  };
+
   const generateTargetWord = async () => {
-    const rndLetter = LETTERS[Math.round(Math.random() * 25)];
-    const response = await fetch(
-      `https://api.datamuse.com/words?sp=${rndLetter}????`
-    );
-    const words = await response.json();
-    const word = words[Math.floor(words.length * Math.random())].word;
-    setTragetWord(word.split(""));
+    // const rndLetter = LETTERS[Math.round(Math.random() * 25)];
+    // const response = await fetch(
+    //   `https://api.datamuse.com/words?sp=${rndLetter}????`
+    // );
+    // const words = await response.json();
+    // const word = words[Math.floor(words.length * Math.random())].word;
+    setTragetWord(["b", "r", "o", "o", "m"]);
+    // setTragetWord(word.split(""));
   };
 
   return (
     <div className="flex flex-col bg-black">
       <div className="flex justify-center">
-        <span className="bg-slate-300 text-[40px]">{targetWord}</span>
+        <span className="text-[40px]">{targetWord}</span>
       </div>
       <div className="inline-grid w-fit grid-cols-5 grid-rows-6 gap-3 bg-black p-6">
         {grid.map((row: String[], rowIndex: number) =>
@@ -144,7 +144,7 @@ export default function Index() {
             <div
               key={rowIndex + "," + colIndex}
               ref={(el) => setRef(el, rowIndex, colIndex)}
-              className="flex h-32 w-32 items-center justify-center border text-[50px] text-white"
+              className="animate-rotateX flex h-32 w-32 items-center justify-center border text-[50px] text-white"
             >
               {char.toUpperCase()}
             </div>
@@ -154,8 +154,8 @@ export default function Index() {
 
       <div className="flex justify-around bg-slate-400 p-1">
         <input
-          onKeyDown={(e) => e.key === "Enter" && submitRow()}
-          value={input}
+          onKeyDown={handleKeyDown}
+          value={userInput}
           onChange={updateBoard}
           type="text"
           maxLength={5}
@@ -174,9 +174,6 @@ export default function Index() {
           Reset
         </button>
       </div>
-      <h1 className="text-3xl">
-        limit keyboard inputs to letters (cancel space char)
-      </h1>
     </div>
   );
 }
