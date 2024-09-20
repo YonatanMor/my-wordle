@@ -5,6 +5,7 @@ export default function Index() {
   const [currentRow, setCurrentRow] = useState(0);
   const [userInput, setUserInput] = useState("");
   const [targetWord, setTragetWord] = useState<string[]>([]);
+  const [isVisible, setIsVisible] = useState<boolean>(false);
   let cellRefs = useRef<(HTMLDivElement | null)[][]>([]);
 
   useEffect(() => {
@@ -24,7 +25,7 @@ export default function Index() {
     setUserInput(e.target.value);
     const inputArr = [...e.target.value.split("")];
     const missingChars = 5 - inputArr.length;
-    if (missingChars !== 5) {
+    if (missingChars !== 0) {
       for (let i = 0; i < missingChars; i++) {
         inputArr.push("");
       }
@@ -33,6 +34,25 @@ export default function Index() {
     updatedGrid[currentRow] = inputArr;
     setGrid(updatedGrid);
   };
+
+  // const updateBoard = (e: React.ChangeEvent<HTMLInputElement>) => {
+  //   const input = e.target.value;
+  //   setUserInput(input);
+
+  //   if (input.length <= 5) {
+  //     const inputArr = input.split("");
+  //     const updatedGrid = [...grid];
+
+  //     // Update only the current row without affecting other rows
+  //     const rowToUpdate = [...updatedGrid[currentRow]];
+  //     inputArr.forEach((char, index) => {
+  //       rowToUpdate[index] = char; // Update the row with the input characters
+  //     });
+
+  //     updatedGrid[currentRow] = rowToUpdate;
+  //     setGrid(updatedGrid);
+  //   }
+  // };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") {
@@ -94,15 +114,34 @@ export default function Index() {
     cellRefs.current[i][j] = el;
   };
 
-  const submitRow = () => {
+  const submitRow = async () => {
     if (userInput.length === 5) {
-      const colors = colorRow();
-      setUserInput("");
-      animateCell(colors);
-      setCurrentRow((prev) => prev + 1);
-      if (currentRow === 5) {
-      }
+      if (await isWord()) {
+        const colors = colorRow();
+        setUserInput("");
+        animateCell(colors);
+        setCurrentRow((prev) => prev + 1);
+        if (currentRow === 5) {
+        }
+      } else notAWordAlert();
     }
+  };
+
+  const isWord = async () => {
+    const response = await fetch(
+      `https://api.datamuse.com/words?sp=${userInput}`
+    );
+    const words = await response.json();
+    return words.find(
+      (obj: { word: string; score: number }) => obj.word === userInput
+    );
+  };
+
+  const notAWordAlert = () => {
+    setIsVisible(true);
+    setTimeout(() => {
+      setIsVisible(false);
+    }, 2000);
   };
 
   const animateCell = (colors: string[]) => {
@@ -123,22 +162,32 @@ export default function Index() {
   };
 
   const generateTargetWord = async () => {
-    // const rndLetter = LETTERS[Math.round(Math.random() * 25)];
-    // const response = await fetch(
-    //   `https://api.datamuse.com/words?sp=${rndLetter}????`
-    // );
-    // const words = await response.json();
-    // const word = words[Math.floor(words.length * Math.random())].word;
-    setTragetWord(["b", "r", "o", "o", "m"]);
-    // setTragetWord(word.split(""));
+    const rndLetter = String.fromCharCode(97 + Math.floor(Math.random() * 26));
+    const response = await fetch(
+      `https://api.datamuse.com/words?sp=${rndLetter}????`
+    );
+    const words = await response.json();
+    const word = words[Math.floor(words.length * Math.random())].word;
+    setTragetWord(word.toUpperCase().split(""));
   };
 
   return (
     <div className="flex flex-col bg-black">
-      <div className="flex justify-center">
-        <span className="text-[40px]">{targetWord}</span>
+      <div className="flex justify-center items-center mt-4">
+        <span className="text-[52px] px-6 rounded-md bg-white text-black">
+          {targetWord}
+        </span>
       </div>
-      <div className="inline-grid w-fit grid-cols-5 grid-rows-6 gap-3 bg-black p-6">
+      <div className="inline-grid w-fit grid-cols-5 grid-rows-6 gap-3 p-6 relative">
+        <div
+          className={`${
+            isVisible ? "opacity-100" : "opacity-0"
+          } transition-opacity duration-700 z-50 ease-out absolute w-full flex justify-center top-14`}
+        >
+          <div className="text-center text-3xl bg-white px-8 py-2 text-black font-semibold">
+            Not a word!
+          </div>
+        </div>
         {grid.map((row: String[], rowIndex: number) =>
           row.map((char: String, colIndex: number) => (
             <div
@@ -150,30 +199,28 @@ export default function Index() {
             </div>
           ))
         )}
-      </div>
 
-      <div className="flex justify-around bg-slate-400 p-1">
         <input
           onKeyDown={handleKeyDown}
           value={userInput}
           onChange={updateBoard}
           type="text"
           maxLength={5}
-          className="rounded-md border-2 border-red-700 bg-slate-300"
+          className="rounded-md border-2 border-red-700 bg-slate-800 absolute top-0 left-0 w-full h-full opacity-0 z-1000"
         />
-        <button
-          onClick={submitRow}
-          className="m-1 h-8 w-20 rounded-md border-2 border-black bg-red-400 px-[2px]"
-        >
-          Enter
-        </button>
-        <button
-          onClick={resetGame}
-          className="m-1 h-8 w-20 rounded-md border-2 border-black bg-red-400 px-[2px]"
-        >
-          Reset
-        </button>
+        {/* <button
+            onClick={submitRow}
+            className="m-1 h-8 w-20 rounded-md border-2 border-black bg-red-400 px-[2px]"
+          >
+            Enter
+          </button> */}
       </div>
+      <button
+        onClick={resetGame}
+        className="ml-[22px] mr-[22px] text-black text-3xl rounded-lg border-4 border-red-800 bg-white "
+      >
+        Reset
+      </button>
     </div>
   );
 }
